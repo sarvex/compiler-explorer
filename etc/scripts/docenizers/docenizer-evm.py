@@ -68,8 +68,7 @@ def get_description_paragraphs(opcode):
 def generate_opcode_mnemonic_map(mnemonic_file):
     mnemonic_map = {}
     for line in mnemonic_file:
-        match = MNEMONIC_RE.match(line)
-        if match:
+        if match := MNEMONIC_RE.match(line):
             mnemonic_map[match.group(1)] = match.group(2)
     return mnemonic_map
 

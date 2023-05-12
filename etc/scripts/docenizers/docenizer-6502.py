@@ -68,8 +68,7 @@ def instructions_from_file(filename, cpu_type, instructions):
             line = remove_comments(line)
             if not line or line.isspace():
                 continue
-            regex_match = mode_change_regex.match(line)
-            if regex_match:
+            if regex_match := mode_change_regex.match(line):
                 parse_mode = mode_change(regex_match.group("mode_name"))
                 continue
             if parse_mode == ParseMode.IGNORE:
@@ -89,8 +88,7 @@ def response_to_lines(response):
 
 def remove_comments(line):
     """Removes comments from a line of a documentation file."""
-    regex_match = comment_regex.search(line)
-    if regex_match:
+    if regex_match := comment_regex.search(line):
         return line[:regex_match.start()]
     else:
         return line
@@ -106,8 +104,7 @@ def mode_change(mode_name):
 
 
 def parse_mnemonics(line, line_num, cpu_type, instructions):
-    regex_match = mnemonic_regex.match(line)
-    if regex_match:
+    if regex_match := mnemonic_regex.match(line):
         mnemonic = regex_match.group("mnemonic")
         name = regex_match.group("name")
         if mnemonic not in instructions:
@@ -115,7 +112,7 @@ def parse_mnemonics(line, line_num, cpu_type, instructions):
         instructions[mnemonic].name = name
     else:
         print(f"Mnemonic parsing: Match failure on line {str(line_num)}")
-        print("    " + line)
+        print(f"    {line}")
 
 
 def parse_descriptions(line, line_num, cpu_type, instructions):
@@ -140,9 +137,11 @@ def write_script(filename, instructions):
               "export function getAsmOpcode(opcode: string | undefined): AssemblyInstructionInfo | undefined {",
               "    if (!opcode) return;",
               "    switch (opcode.toUpperCase()) {"]
+    # Will need to be replaced when other 65xx CPUs are added
+    s = "https://www.pagetable.com/c64ref/6502/?cpu="
+    e = "&tab=2#"
     for inst in instructions.values():
-        script.append(f"        case \"{inst.mnemonic}\":")
-        script.append("            return {")
+        script.extend((f'        case \"{inst.mnemonic}\":', "            return {"))
         html = f"{16 * ' '}\"html\": \""
         html += inst.html_description()
         html += "\","
@@ -155,16 +154,12 @@ def write_script(filename, instructions):
             script.append(f"{16 * ' '}\"tooltip\": \"{safe_n}\",")
         else:
             script.append(f"{16 * ' '}\"tooltip\": \"{inst.mnemonic}\",")
-        # Will need to be replaced when other 65xx CPUs are added
-        s = "https://www.pagetable.com/c64ref/6502/?cpu="
-        e = "&tab=2#"
         t = inst.cpu_type
         m = inst.mnemonic
-        script.append(f"{16 * ' '}\"url\": \"{s}{t}{e}{m}\",")
-        script.append(12 * " " + "};")
-        script.append("")
-    script.append("    }")
-    script.append("}")
+        script.extend(
+            (f"""{16 * ' '}\"url\": \"{s}{t}{e}{m}\",""", 12 * " " + "};", "")
+        )
+    script.extend(("    }", "}"))
     with open(filename, "w") as f:
         print(f"Writing output to {filename}...")
         f.write("\n".join(script))

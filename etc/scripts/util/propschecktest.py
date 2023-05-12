@@ -50,17 +50,20 @@ class PropsCheckTests(unittest.TestCase):
         self.run_test("bad_default", "bad_default", {"b"})
 
     def test_empty_separators(self):
-        self.run_test("empty_separators", "empty_separators", {
-            "compilers=a::b",
-            "compilers=a::b",
-            "compilers=::a:b",
-            "compilers=a:b::",
-            "compilers=::",
-            "compilers=::a",
-            "compilers=a::",
-            "compilers=:a",
-            "compilers=a:"
-        })
+        self.run_test(
+            "empty_separators",
+            "empty_separators",
+            {
+                "compilers=a::b",
+                "compilers=::a:b",
+                "compilers=a:b::",
+                "compilers=::",
+                "compilers=::a",
+                "compilers=a::",
+                "compilers=:a",
+                "compilers=a:",
+            },
+        )
 
     def test_duplicate_lines(self):
         self.run_test("duplicate_lines", "duplicate_lines", {"duplicated.prop"})

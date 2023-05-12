@@ -90,7 +90,7 @@ def dis37(x=None, depth=None):
         items = sorted(x.__dict__.items())
         for name, x1 in items:
             if isinstance(x1, _have_code):
-                print("Disassembly of %s:" % name)
+                print(f"Disassembly of {name}:")
                 try:
                     dis(x1, depth=depth)
                 except TypeError as msg:
@@ -103,8 +103,7 @@ def dis37(x=None, depth=None):
     elif isinstance(x, str):    # Source code
         _disassemble_str(x, depth=depth)
     else:
-        raise TypeError("don't know how to disassemble %s objects" %
-                        type(x).__name__)
+        raise TypeError(f"don't know how to disassemble {type(x).__name__} objects")
 
 
 if __name__ == '__main__':

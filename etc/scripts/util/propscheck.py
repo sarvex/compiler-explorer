@@ -156,8 +156,7 @@ def process_file(file: str):
             else:
                 seen_lines.add(prop_key)
 
-            match_compilers_list = COMPILERS_LIST_RE.search(line.text)
-            if match_compilers_list:
+            if match_compilers_list := COMPILERS_LIST_RE.search(line.text):
                 ids = match_compilers_list.group(1).split(':')
                 for elem_id in ids:
                     if elem_id.startswith('&'):
@@ -169,15 +168,13 @@ def process_file(file: str):
                             duplicated_compiler_references.add(Line(line.number, elem_id))
                         listed_compilers.add(Line(line.number, elem_id))
 
-            match_libs_versions = LIB_VERSIONS_LIST_RE.match(line.text)
-            if match_libs_versions:
+            if match_libs_versions := LIB_VERSIONS_LIST_RE.match(line.text):
                 lib_id = match_libs_versions.group(1)
                 versions = match_libs_versions.group(2).split(':')
                 seen_libs_ids.add(Line(line.number, lib_id))
                 listed_libs_versions.update([Line(line.number, f"{lib_id} {v}") for v in versions])
 
-            match_libs_version = LIB_VERSION_RE.match(line.text)
-            if match_libs_version:
+            if match_libs_version := LIB_VERSION_RE.match(line.text):
                 lib_id = match_libs_version.group(1)
                 version = match_libs_version.group(2)
                 seen_libs_versions.add(Line(line.number, f"{lib_id} {version}"))
@@ -206,12 +203,12 @@ def process_file(file: str):
             match_and_update(line, TOOLS_LIST_RE, listed_tools)
             match_and_update(line, LIBS_LIST_RE, listed_libs_ids)
 
-    if len(seen_compilers_exe) > 0:
+    if seen_compilers_exe:
         bad_compilers_exe = listed_compilers.symmetric_difference(seen_compilers_exe)
     else:
         bad_compilers_exe = set()
 
-    if len(seen_compilers_id) > 0:
+    if seen_compilers_id:
         bad_compilers_ids = listed_compilers.symmetric_difference(seen_compilers_id)
     else:
         bad_compilers_ids = set()
@@ -246,11 +243,14 @@ def process_file(file: str):
 
 
 def process_folder(folder: str):
-    return [(f, process_file(join(folder, f)))
-            for f in listdir(folder)
-            if isfile(join(folder, f))
-            and not (f.endswith('.defaults.properties') or f.endswith('.local.properties'))
-            and f.endswith('.properties')]
+    return [
+        (f, process_file(join(folder, f)))
+        for f in listdir(folder)
+        if isfile(join(folder, f))
+        and not f.endswith('.defaults.properties')
+        and not f.endswith('.local.properties')
+        and f.endswith('.properties')
+    ]
 
 
 def problems_found(file_result):
@@ -281,6 +281,5 @@ def find_orphans(folder: str):
     return result
 
 
-if __name__ == '__main__':
-    if find_orphans('./etc/config/'):
-        sys.exit(1)
+if __name__ == '__main__' and find_orphans('./etc/config/'):
+    sys.exit(1)

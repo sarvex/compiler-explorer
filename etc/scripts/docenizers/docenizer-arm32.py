@@ -48,7 +48,7 @@ class Instruction(object):
         self.body = body
 
     def __str__(self):
-        return "{} = {}\n{}".format(self.names, self.tooltip, self.body)
+        return f"{self.names} = {self.tooltip}\n{self.body}"
 
 
 def get_url_for_instruction(instr):
@@ -57,10 +57,10 @@ def get_url_for_instruction(instr):
 
 def download_asm_doc_archive(downloadfolder):
     if not os.path.exists(downloadfolder):
-        print("Creating {} as download folder".format(downloadfolder))
+        print(f"Creating {downloadfolder} as download folder")
         os.makedirs(downloadfolder)
     elif not os.path.isdir(downloadfolder):
-        print("Error: download folder {} is not a directory".format(downloadfolder))
+        print(f"Error: download folder {downloadfolder} is not a directory")
         sys.exit(1)
     archive_name = os.path.join(downloadfolder, ARCHIVE_NAME)
     print("Downloading archive...")
@@ -78,8 +78,7 @@ def extract_asm_doc_archive(downloadfolder, inputfolder):
     tar.extractall(path=inputfolder)
 
 def instr_name(i):
-    match = INSTRUCTION_RE.match(strip_non_instr(i))
-    if match:
+    if match := INSTRUCTION_RE.match(strip_non_instr(i)):
         return match.group(1)
 
 
@@ -98,7 +97,7 @@ def get_authored_paragraphs(document_soup):
 def parse(filename, f):
     doc = BeautifulSoup(f, 'html.parser')
     if doc.instructionsection is None:
-        print(filename + ": Failed to find instructionsection")
+        print(f"{filename}: Failed to find instructionsection")
         return None
     instructionsection = doc.instructionsection
     names = set()
@@ -127,10 +126,8 @@ def parse_xml(directory):
                     name = os.path.splitext(file)[0]
                     if name in IGNORED_DUPLICATES or name in IGNORED_FILE_NAMES:
                         continue
-                    instruction = parse(name, f2)
-                    if not instruction:
-                        continue
-                    instructions.append(instruction)
+                    if instruction := parse(name, f2):
+                        instructions.append(instruction)
     return instructions
 
 
@@ -140,15 +137,15 @@ def self_test(instructions, directory):
     directory = os.path.join(directory, ARCHIVE_SUBDIR)
     ok = True
     for inst in instructions:
-        if not os.path.isfile(os.path.join(directory, inst.name + ".xml")):
-            print("Warning: {} has not file associated".format(inst.name))
+        if not os.path.isfile(os.path.join(directory, f"{inst.name}.xml")):
+            print(f"Warning: {inst.name} has not file associated")
             ok = False
     return ok
 
 
 def docenizer():
     args = parser.parse_args()
-    print("Called with: {}".format(args))
+    print(f"Called with: {args}")
     # If we don't have the html folder already...
     if not os.path.isdir(os.path.join(args.inputfolder, ARCHIVE_SUBDIR)):
         # We don't, try with the compressed file
@@ -170,13 +167,14 @@ def docenizer():
     all_inst = set()
     for inst in instructions:
         if not all_inst.isdisjoint(inst.names):
-            print("Overlap in instruction names: {} for {}".format(
-                inst.names.intersection(all_inst), inst.name))
+            print(
+                f"Overlap in instruction names: {inst.names.intersection(all_inst)} for {inst.name}"
+            )
         all_inst = all_inst.union(inst.names)
     if not self_test(instructions, args.inputfolder):
         print("Tests do not pass. Not writing output file. Aborting.")
         sys.exit(3)
-    print("Writing {} instructions".format(len(instructions)))
+    print(f"Writing {len(instructions)} instructions")
     with open(args.outputpath, 'w') as f:
         f.write("""
 import {AssemblyInstructionInfo} from '../base.js';
@@ -187,7 +185,7 @@ export function getAsmOpcode(opcode: string | undefined): AssemblyInstructionInf
 """.lstrip())
         for inst in instructions:
             for name in sorted(inst.names):
-                f.write('        case "{}":\n'.format(name))
+                f.write(f'        case "{name}":\n')
             f.write('            return {}'.format(json.dumps({
                 "tooltip": inst.tooltip,
                 "html": inst.body,

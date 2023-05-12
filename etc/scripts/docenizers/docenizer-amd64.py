@@ -157,8 +157,7 @@ def strip_non_instr(i):
 
 
 def instr_name(i):
-    match = INSTRUCTION_RE.match(strip_non_instr(i))
-    if match:
+    if match := INSTRUCTION_RE.match(strip_non_instr(i)):
         return match.group(1)
 
 
@@ -170,8 +169,8 @@ def get_description_paragraphs(document_soup):
     while i < MAX_DESC_PARAS and len(description_paragraph_node.text) > 20:
         if description_paragraph_node.name == "p":
             description_paragraphs.append(description_paragraph_node)
-            i = i + 1
-            # Move two siblings forward. Next sibling is the line feed.
+            i += 1
+                    # Move two siblings forward. Next sibling is the line feed.
         description_paragraph_node = description_paragraph_node.next_sibling.next_sibling
     return description_paragraphs
 
@@ -256,11 +255,10 @@ def read_table(start_table):
         # common case
         for table in tables:
             for row in table.find_all('tr'):
-                obj = {}
-                for column, name in zip(row.find_all('td'), headers):
-                    # Remove '\n's in names that contain it.
-                    obj[name.replace('\n', '')] = column.get_text()
-                if obj:
+                if obj := {
+                    name.replace('\n', ''): column.get_text()
+                    for column, name in zip(row.find_all('td'), headers)
+                }:
                     result.append(obj)
     else:
         # Cases like BEXTR and BZHI
@@ -305,7 +303,7 @@ def self_test(instructions, directory):
     directory = os.path.join(directory, "html")
     ok = True
     for inst in instructions:
-        if not os.path.isfile(os.path.join(directory, inst.name + ".html")):
+        if not os.path.isfile(os.path.join(directory, f"{inst.name}.html")):
             print(f"Warning: {inst.name} has not file associated")
             ok = False
     return ok

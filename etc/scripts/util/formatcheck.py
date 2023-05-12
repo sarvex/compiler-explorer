@@ -55,7 +55,11 @@ def paginated_get(entity: str, query: dict = None) -> [dict]:
 def list_open_prs(stale_label: str = None) -> [dict]:
     prs = paginated_get(f"repos/{OWNER_REPO}/pulls", {"state": "open"})
     if stale_label is not None:
-        return [pr for pr in prs if not any(label["name"] == stale_label for label in pr["labels"])]
+        return [
+            pr
+            for pr in prs
+            if all(label["name"] != stale_label for label in pr["labels"])
+        ]
     return prs
 
 
@@ -65,16 +69,14 @@ def list_pr_files(pr: dict) -> [dict]:
 
 def list_modified_paths_in_pr(pr: dict) -> Set[str]:
     pr_paths = list_pr_files(pr)
-    filtered = {x["filename"] for x in pr_paths if x["status"] == "modified"}
-    return filtered
+    return {x["filename"] for x in pr_paths if x["status"] == "modified"}
 
 
 def list_files_under_vc() -> Set[str]:
     output = subprocess.check_output(
         ["git", "ls-tree", "-r", "main", "--name-only"]
     ).decode("utf-8")
-    paths = set(output.splitlines())
-    return paths
+    return set(output.splitlines())
 
 
 def make_file_formateable(path: str):
@@ -82,7 +84,7 @@ def make_file_formateable(path: str):
         with open(path, "r+") as f:
             content = ["/**\n", " * @prettier\n", " */\n"]
             file_contents = f.readlines()
-            if file_contents[0:3] != content:
+            if file_contents[:3] != content:
                 content.extend(file_contents)
                 f.seek(0)
                 f.writelines(content)

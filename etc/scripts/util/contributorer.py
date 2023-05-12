@@ -37,12 +37,14 @@ def dprint(msg, args):
 
 
 def get_oauth(url, args, **kwargs):
-    return requests.get(url, headers={'Authorization': 'token {}'.format(args.token)}, **kwargs)
+    return requests.get(
+        url, headers={'Authorization': f'token {args.token}'}, **kwargs
+    )
 
 
 def get_contributors(args):
     contributors = []
-    link = 'https://api.github.com/repos/{}/contributors'.format(args.repository)
+    link = f'https://api.github.com/repos/{args.repository}/contributors'
     while link is not None:
         print(link)
         result = get_oauth(link, args, params={'per_page': 80})
@@ -59,14 +61,13 @@ def get_contributors(args):
                 else:
                     link = None
 
-        for contributor in result.json():
-            contributors.append(contributor)
+        contributors.extend(iter(result.json()))
     return contributors
 
 
 def get_collaborators(args):
     collaborators = []
-    link = 'https://api.github.com/repos/{}/collaborators'.format(args.repository)
+    link = f'https://api.github.com/repos/{args.repository}/collaborators'
     while link is not None:
         print(link)
         result = get_oauth(link, args, params={'per_page': 80})
@@ -83,8 +84,7 @@ def get_collaborators(args):
                 else:
                     link = None
 
-        for collaborator in result.json():
-            collaborators.append(collaborator)
+        collaborators.extend(iter(result.json()))
     return collaborators
 
 
@@ -110,23 +110,25 @@ def create_file(args):
     all_contributors = get_contributors(args)
     # People already listed somewhere else. Use set diff?
     contributors = [contributor for contributor in all_contributors if contributor['login'].lower() not in skippable]
-    print('Found {} contributors. Skipping {} collaborators'.format(len(contributors), len(skippable)))
+    print(
+        f'Found {len(contributors)} contributors. Skipping {len(skippable)} collaborators'
+    )
     # Create cache folder, which can be cleared at any moment
-    cache_dir_base = 'contributorer-cache-{}'.format(repository_safe)
+    cache_dir_base = f'contributorer-cache-{repository_safe}'
     if not os.path.isdir(cache_dir_base):
         os.mkdir(cache_dir_base)
-    dprint('Cache base dir: {}'.format(cache_dir_base), args)
-    cache_dir_commits = '{}/commits'.format(cache_dir_base)
+    dprint(f'Cache base dir: {cache_dir_base}', args)
+    cache_dir_commits = f'{cache_dir_base}/commits'
     if not os.path.isdir(cache_dir_commits):
         os.mkdir(cache_dir_commits)
-    dprint('Cache commits dir: {}'.format(cache_dir_commits), args)
+    dprint(f'Cache commits dir: {cache_dir_commits}', args)
     first_commits = []
     for contributor in contributors:
         commits = {}
         # Where should the commits for this contributor be?
         # This works even if outdated because we are looking for old commits, not new
-        contrib_file = '{}/{}-commits.json'.format(cache_dir_commits, contributor['login'])
-        dprint('Checking commits file: {}'.format(contrib_file), args)
+        contrib_file = f"{cache_dir_commits}/{contributor['login']}-commits.json"
+        dprint(f'Checking commits file: {contrib_file}', args)
         if os.path.isfile(contrib_file):
             dprint('File found, using as commit source', args)
             with open(contrib_file, 'r') as c:
@@ -134,8 +136,11 @@ def create_file(args):
         else:
             dprint('None found, querying to GitHub', args)
             # TODO: Buffer them and send only 1 request?
-            result = get_oauth('https://api.github.com/repos/{}/commits'.format(args.repository), args,
-                               params={'author': contributor['login']})
+            result = get_oauth(
+                f'https://api.github.com/repos/{args.repository}/commits',
+                args,
+                params={'author': contributor['login']},
+            )
             if result.status_code == 200:
                 commits = result.json()
                 dprint('Writing results to file', args)
@@ -144,19 +149,28 @@ def create_file(args):
         if len(commits) > 0:
             first_commit = commits[-1]
             dprint(
-                'First commit for {} was in {}'.format(contributor['login'], first_commit['commit']['author']['date']),
-                args
+                f"First commit for {contributor['login']} was in {first_commit['commit']['author']['date']}",
+                args,
             )
-            first_commits.append({'date': first_commit['commit']['author']['date'],
-                                  'name': first_commit['commit']['author']['name']
-                                  or '"{}"'.format(first_commit['author']['login']),
-                                  'url': first_commit['author']['html_url']})
+            first_commits.append(
+                {
+                    'date': first_commit['commit']['author']['date'],
+                    'name': first_commit['commit']['author']['name']
+                    or f""""{first_commit['author']['login']}\"""",
+                    'url': first_commit['author']['html_url'],
+                }
+            )
     dprint('Sorting commits from oldest to newest', args)
     sorted_commits = sorted(first_commits, key=lambda x: PySO8601.parse(x['date']))
     with open(args.output, 'w') as md:
-        dprint('Output file: {}'.format(args.output), args)
+        dprint(f'Output file: {args.output}', args)
         md.write('From oldest to newest contributor, we would like to thank:\n\n')
-        md.writelines(['- [{}]({})\n'.format(commit['name'], commit['url']) for commit in sorted_commits])
+        md.writelines(
+            [
+                f"- [{commit['name']}]({commit['url']})\n"
+                for commit in sorted_commits
+            ]
+        )
 
 
 if __name__ == '__main__':
